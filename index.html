@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wazuh Homelab — Guia do Zero</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d; --surface: #141414; --surface2: #1a1a1a; --border: #222;
+    --accent: #00ff88; --accent2: #ff4444; --accent3: #4488ff; --yellow: #ffaa44;
+    --text: #e8e8e8; --muted: #555;
+    --mono: 'JetBrains Mono', monospace; --display: 'Bebas Neue', sans-serif; --body: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--body); font-size: 15px; line-height: 1.7; }
+
+  header { padding: 80px 60px 60px; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+  header::before { content: 'HOMELAB'; position: absolute; right: -20px; top: -20px; font-family: var(--display); font-size: 200px; color: rgba(0,255,136,0.03); pointer-events: none; line-height: 1; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .eyebrow::before { content: ''; width: 30px; height: 1px; background: var(--accent); }
+  h1 { font-family: var(--display); font-size: clamp(48px, 8vw, 96px); letter-spacing: 2px; line-height: 0.9; color: #fff; }
+  h1 span { color: var(--accent); }
+  .header-meta { display: flex; gap: 24px; margin-top: 28px; flex-wrap: wrap; }
+  .hm-item { font-family: var(--mono); font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .hm-item .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+  nav { position: sticky; top: 0; z-index: 100; background: rgba(13,13,13,0.97); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); padding: 0 60px; display: flex; overflow-x: auto; }
+  nav a { color: var(--muted); text-decoration: none; font-family: var(--mono); font-size: 11px; padding: 14px 14px; border-bottom: 2px solid transparent; white-space: nowrap; transition: color 0.15s, border-color 0.15s; letter-spacing: 1px; }
+  nav a:hover { color: var(--accent); border-color: var(--accent); }
+
+  main { max-width: 960px; margin: 0 auto; padding: 0 60px 100px; }
+
+  .prereq { margin-top: 48px; background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--accent3); padding: 28px 32px; }
+  .prereq-title { font-family: var(--display); font-size: 24px; color: #fff; margin-bottom: 16px; }
+  .prereq-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .prereq-item { border: 1px solid var(--border); padding: 12px 16px; }
+  .prereq-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .prereq-val { font-size: 13px; color: var(--text); }
+  .prereq-val a { color: var(--accent3); text-decoration: none; }
+  .prereq-val a:hover { text-decoration: underline; }
+
+  .step { margin-top: 72px; padding-top: 32px; border-top: 1px solid var(--border); }
+  .step-header { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 28px; }
+  .step-num { font-family: var(--display); font-size: 64px; color: var(--accent); line-height: 1; flex-shrink: 0; opacity: 0.35; }
+  .step-tag { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  h2 { font-family: var(--display); font-size: 32px; letter-spacing: 1px; color: #fff; line-height: 1.1; }
+  h3 { font-family: var(--mono); font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin: 28px 0 10px; }
+  p { color: #999; margin-bottom: 12px; font-size: 14px; }
+  p strong { color: var(--text); }
+
+  .cmd-block { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); margin: 10px 0; overflow: hidden; }
+  .cmd-block.blue { border-left-color: var(--accent3); }
+  .cmd-block.red { border-left-color: var(--accent2); }
+  .cmd-block.yellow { border-left-color: var(--yellow); }
+  .cmd-header { background: var(--surface2); padding: 6px 16px; font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .cmd-copy { background: none; border: none; cursor: pointer; color: var(--muted); font-family: var(--mono); font-size: 10px; padding: 2px 8px; transition: color 0.15s; }
+  .cmd-copy:hover { color: var(--accent); }
+  .cmd-body { padding: 14px 16px; font-family: var(--mono); font-size: 13px; color: #ccc; word-break: break-all; white-space: pre-wrap; }
+  .cmd-body .kw { color: var(--accent); }
+  .cmd-body .str { color: var(--yellow); }
+  .cmd-body .flag { color: var(--accent3); }
+  .cmd-body .cmt { color: var(--muted); }
+
+  .note { border: 1px solid var(--border); border-left: 3px solid; padding: 12px 16px; margin: 14px 0; font-size: 13px; color: #888; }
+  .note.tip { border-left-color: var(--accent); }
+  .note.warn { border-left-color: var(--yellow); }
+  .note.danger { border-left-color: var(--accent2); }
+  .note strong { display: block; margin-bottom: 4px; font-size: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 1px; }
+  .note.tip strong { color: var(--accent); }
+  .note.warn strong { color: var(--yellow); }
+  .note.danger strong { color: var(--accent2); }
+
+  .result { background: rgba(0,255,136,0.04); border: 1px solid rgba(0,255,136,0.15); padding: 12px 16px; margin: 12px 0; font-family: var(--mono); font-size: 12px; color: #888; }
+  .result .ok { color: var(--accent); }
+  .result .label { color: var(--muted); font-size: 10px; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .specs { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); margin: 14px 0; }
+  .spec-item { background: var(--surface); padding: 10px 14px; }
+  .spec-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .spec-val { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+
+  .net-diagram { background: var(--surface); border: 1px solid var(--border); padding: 24px; margin: 14px 0; font-family: var(--mono); font-size: 12px; }
+  .net-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; flex-wrap: wrap; }
+  .net-box { border: 1px solid var(--border); padding: 6px 14px; color: var(--text); font-size: 12px; white-space: nowrap; }
+  .net-box.green { border-color: var(--accent); color: var(--accent); }
+  .net-box.blue { border-color: var(--accent3); color: var(--accent3); }
+  .net-arrow { color: var(--muted); flex: 1; text-align: center; }
+  .net-label { font-size: 11px; color: var(--muted); text-align: center; margin-top: 4px; }
+
+  .file-block { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--yellow); margin: 10px 0; overflow: hidden; }
+  .file-header { background: var(--surface2); padding: 6px 16px; font-family: var(--mono); font-size: 10px; color: var(--yellow); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .file-body { padding: 14px 16px; font-family: var(--mono); font-size: 13px; color: #ccc; white-space: pre; }
+  .file-body .fk { color: var(--accent3); }
+  .file-body .fv { color: var(--yellow); }
+
+  .checklist { list-style: none; padding: 0; margin: 14px 0; }
+  .checklist li { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(34,34,34,0.5); font-size: 13px; color: #888; align-items: flex-start; }
+  .checklist li:last-child { border-bottom: none; }
+  .ck { width: 18px; height: 18px; border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; font-size: 11px; color: var(--accent); }
+  .checklist li strong { color: var(--text); }
+
+  .summary { margin-top: 72px; padding: 40px; background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--accent); }
+  .summary-title { font-family: var(--display); font-size: 36px; color: #fff; margin-bottom: 24px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .sg-item { border: 1px solid var(--border); padding: 16px; }
+  .sg-num { font-family: var(--display); font-size: 40px; color: var(--accent); line-height: 1; }
+  .sg-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  footer { border-top: 1px solid var(--border); padding: 24px 60px; font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: center; }
+  @media(max-width:600px) { header, main, footer { padding-left: 24px; padding-right: 24px; } nav { padding-left: 16px; } h1 { font-size: 48px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Guia do Zero · SOC Homelab</div>
+  <h1>WAZUH<br><span>HOMELAB</span></h1>
+  <p style="margin-top:16px; color:#666; font-size:14px; max-width:560px;">Guia completo e funcional para montar um ambiente de SOC com Wazuh SIEM do zero — na ordem correta, sem erros, com configurações permanentes.</p>
+  <div class="header-meta">
+    <div class="hm-item"><span class="dot"></span>VirtualBox + Ubuntu 22.04 LTS</div>
+    <div class="hm-item"><span class="dot"></span>Wazuh 4.7 All-in-one</div>
+    <div class="hm-item"><span class="dot"></span>Agente Windows</div>
+    <div class="hm-item"><span class="dot"></span>Simulação de ataque real</div>
+  </div>
+</header>
+
+<nav>
+  <a href="#prereq">Pré-requisitos</a>
+  <a href="#vm">1. Criar VM</a>
+  <a href="#rede">2. Rede</a>
+  <a href="#ubuntu">3. Ubuntu</a>
+  <a href="#ssh">4. SSH</a>
+  <a href="#wazuh">5. Wazuh</a>
+  <a href="#agente">6. Agente</a>
+  <a href="#ataque">7. Simulação</a>
+</nav>
+
+<main>
+
+<!-- PRÉ-REQUISITOS -->
+<div class="prereq" id="prereq">
+  <div class="prereq-title">PRÉ-REQUISITOS</div>
+  <div class="prereq-grid">
+    <div class="prereq-item"><div class="prereq-label">RAM do host</div><div class="prereq-val">8 GB mínimo</div></div>
+    <div class="prereq-item"><div class="prereq-label">Disco livre</div><div class="prereq-val">60 GB mínimo</div></div>
+    <div class="prereq-item"><div class="prereq-label">VirtualBox</div><div class="prereq-val"><a href="https://virtualbox.org" target="_blank">virtualbox.org ↗</a></div></div>
+    <div class="prereq-item"><div class="prereq-label">ISO Ubuntu</div><div class="prereq-val"><a href="https://ubuntu.com/download/server" target="_blank">ubuntu.com/download/server ↗</a></div></div>
+    <div class="prereq-item"><div class="prereq-label">Versão Ubuntu</div><div class="prereq-val">22.04.x LTS Server</div></div>
+    <div class="prereq-item"><div class="prereq-label">Internet</div><div class="prereq-val">Necessária durante instalação</div></div>
+  </div>
+</div>
+
+<!-- STEP 1 -->
+<div class="step" id="vm">
+  <div class="step-header">
+    <div class="step-num">01</div>
+    <div class="step-title-block">
+      <div class="step-tag">VirtualBox</div>
+      <h2>CRIAR A VM UBUNTU</h2>
+    </div>
+  </div>
+
+  <p>Abra o VirtualBox e clique em <strong>Novo</strong>. O assistente vai exibir uma tela chamada <strong>"Configuração de Instalação Desassistida"</strong> — preencha ali as credenciais de acesso antes de continuar.</p>
+
+  <h3>Especificações da VM</h3>
+  <div class="specs">
+    <div class="spec-item"><div class="spec-label">Nome</div><div class="spec-val">Wazuh-Server</div></div>
+    <div class="spec-item"><div class="spec-label">ISO</div><div class="spec-val">Ubuntu 22.04 LTS Server</div></div>
+    <div class="spec-item"><div class="spec-label">Tipo</div><div class="spec-val">Linux / Ubuntu 64-bit</div></div>
+    <div class="spec-item"><div class="spec-label">RAM</div><div class="spec-val">4096 MB</div></div>
+    <div class="spec-item"><div class="spec-label">CPU</div><div class="spec-val">2 núcleos</div></div>
+    <div class="spec-item"><div class="spec-label">Disco</div><div class="spec-val">50 GB (dinâmico / VDI)</div></div>
+  </div>
+
+  <h3>Tela de Instalação Desassistida</h3>
+  <div class="specs">
+    <div class="spec-item"><div class="spec-label">Usuário</div><div class="spec-val">ubuntu</div></div>
+    <div class="spec-item"><div class="spec-label">Senha</div><div class="spec-val">ubuntu</div></div>
+    <div class="spec-item"><div class="spec-label">Nome do servidor</div><div class="spec-val">Wazuh-Server</div></div>
+  </div>
+
+  <div class="note warn">
+    <strong>⚠ Não ligue a VM ainda</strong>
+    Clique em Finalizar, mas não inicie a VM. O próximo passo é configurar a rede — isso precisa ser feito com a VM desligada.
+  </div>
+</div>
+
+<!-- STEP 2 -->
+<div class="step" id="rede">
+  <div class="step-header">
+    <div class="step-num">02</div>
+    <div class="step-title-block">
+      <div class="step-tag">VirtualBox</div>
+      <h2>CONFIGURAR A REDE</h2>
+    </div>
+  </div>
+
+  <p>Este é o passo mais crítico. A VM precisa de <strong>dois adaptadores de rede</strong>: um para internet e outro para comunicação com seu PC. A ordem importa — <strong>Adaptador 1 = NAT, Adaptador 2 = Host-only</strong>.</p>
+
+  <h3>Por que dois adaptadores?</h3>
+  <div class="net-diagram">
+    <div class="net-row">
+      <div class="net-box blue">Seu PC (Windows)</div>
+      <div class="net-arrow">←── Host-only · 192.168.56.x ──→</div>
+      <div class="net-box green">Wazuh VM</div>
+    </div>
+    <div class="net-label">Adaptador 2 → acesso ao dashboard e SSH</div>
+    <br>
+    <div class="net-row">
+      <div class="net-box green">Wazuh VM</div>
+      <div class="net-arrow">──────── NAT ────────→</div>
+      <div class="net-box">Internet</div>
+    </div>
+    <div class="net-label">Adaptador 1 → download de pacotes durante instalação</div>
+  </div>
+
+  <h3>Pré-requisito — criar a rede Host-only</h3>
+  <p>Se ainda não existir, crie a rede Host-only no VirtualBox: <strong>File → Tools → Network Manager → Create</strong>. Deixe o IP padrão (<code>192.168.56.1/24</code>) e habilite o DHCP.</p>
+
+  <h3>Adaptador 1 — NAT</h3>
+  <p>Botão direito na VM → <strong>Configurações → Rede → Adaptador 1</strong>:</p>
+  <div class="specs">
+    <div class="spec-item"><div class="spec-label">Habilitar</div><div class="spec-val">✓ Marcado</div></div>
+    <div class="spec-item"><div class="spec-label">Conectado a</div><div class="spec-val">NAT</div></div>
+  </div>
+
+  <h3>Adaptador 2 — Host-only</h3>
+  <p>Clique na aba <strong>Adaptador 2</strong>:</p>
+  <div class="specs">
+    <div class="spec-item"><div class="spec-label">Habilitar</div><div class="spec-val">✓ Marcado</div></div>
+    <div class="spec-item"><div class="spec-label">Conectado a</div><div class="spec-val">Host-only Adapter</div></div>
+    <div class="spec-item"><div class="spec-label">Nome</div><div class="spec-val">VirtualBox Host-Only Ethernet Adapter</div></div>
+  </div>
+
+  <p>Clique <strong>OK</strong>. Agora pode ligar a VM.</p>
+</div>
+
+<!-- STEP 3 -->
+<div class="step" id="ubuntu">
+  <div class="step-header">
+    <div class="step-num">03</div>
+    <div class="step-title-block">
+      <div class="step-tag">Ubuntu</div>
+      <h2>CONFIGURAR O UBUNTU</h2>
+    </div>
+  </div>
+
+  <p>Ligue a VM. O Ubuntu instala automaticamente (instalação desassistida). Aguarde o prompt de login — pode demorar 5–10 minutos. Faça login com <code>ubuntu</code> / <code>ubuntu</code>.</p>
+
+  <h3>Passo 3.1 — Configurar o teclado para PT-BR</h3>
+  <p>Por padrão o Ubuntu vem com layout de teclado americano (US). Antes de digitar qualquer comando, configure para ABNT2 para evitar problemas com caracteres como <code>:</code>, <code>@</code> e <code>-</code>:</p>
+  <div class="cmd-block">
+    <div class="cmd-header">bash — na janela da VM <button class="cmd-copy" onclick="copyCmd(this, 'sudo dpkg-reconfigure keyboard-configuration')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">sudo</span> dpkg-reconfigure keyboard-configuration</div>
+  </div>
+  <p>Vai abrir um menu azul. Navegue com as setas e selecione:</p>
+  <div class="specs">
+    <div class="spec-item"><div class="spec-label">Tela 1 — Modelo</div><div class="spec-val">Generic 105-key PC</div></div>
+    <div class="spec-item"><div class="spec-label">Tela 2 — País</div><div class="spec-val">Portuguese (Brazil)</div></div>
+    <div class="spec-item"><div class="spec-label">Tela 3 — Layout</div><div class="spec-val">Portuguese (Brazil)</div></div>
+    <div class="spec-item"><div class="spec-label">Tela 4 — AltGr</div><div class="spec-val">The default for the keyboard layout</div></div>
+    <div class="spec-item"><div class="spec-label">Tela 5 — Compose key</div><div class="spec-val">No compose key</div></div>
+  </div>
+  <p>Depois aplique sem precisar reiniciar:</p>
+  <div class="cmd-block">
+    <div class="cmd-header">bash <button class="cmd-copy" onclick="copyCmd(this, 'sudo setupcon')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">sudo</span> setupcon</div>
+  </div>
+  <div class="note tip">
+    <strong>Dica</strong>
+    Após esse passo, o teclado já fica em ABNT2 permanentemente — inclusive após reboots. Teste digitando <code>:</code> e <code>@</code> para confirmar.
+  </div>
+
+  <h3>Passo 3.2 — Atualizar o sistema</h3>
+  <div class="cmd-block">
+    <div class="cmd-header">bash — na janela da VM <button class="cmd-copy" onclick="copyCmd(this, 'sudo apt update && sudo apt upgrade -y')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">sudo</span> apt update <span class="flag">&&</span> <span class="kw">sudo</span> apt upgrade -y</div>
+  </div>
+  <p>Se aparecer a tela roxa <em>"Which services should be restarted?"</em> — pressione <strong>Enter</strong> para aceitar e continuar.</p>
+
+  <h3>Passo 3.3 — Tornar a interface Host-only permanente</h3>
+  <p>Por padrão, a interface Host-only (<code>enp0s8</code>) não sobe automaticamente após o reboot. Corrigimos isso editando o Netplan — o gerenciador de rede do Ubuntu.</p>
+
+  <p>Primeiro veja os nomes exatos das interfaces:</p>
+  <div class="cmd-block">
+    <div class="cmd-header">bash <button class="cmd-copy" onclick="copyCmd(this, 'ip link show')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">ip link show</span></div>
+  </div>
+  <p>Você verá <code>enp0s3</code> (NAT) e <code>enp0s8</code> (Host-only). Agora edite o arquivo de rede:</p>
+
+  <div class="cmd-block">
+    <div class="cmd-header">bash <button class="cmd-copy" onclick="copyCmd(this, 'sudo nano /etc/netplan/00-installer-config.yaml')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">sudo</span> nano /etc/netplan/00-installer-config.yaml</div>
+  </div>
+
+  <p>Substitua todo o conteúdo por:</p>
+  <div class="file-block">
+    <div class="file-header">/etc/netplan/00-installer-config.yaml <button class="cmd-copy" onclick="copyCmd(this, 'network:\n  version: 2\n  ethernets:\n    enp0s3:\n      dhcp4: true\n    enp0s8:\n      dhcp4: true')">copiar</button></div>
+    <div class="file-body"><span class="fk">network</span>:
+  <span class="fk">version</span>: <span class="fv">2</span>
+  <span class="fk">ethernets</span>:
+    <span class="fk">enp0s3</span>:
+      <span class="fk">dhcp4</span>: <span class="fv">true</span>
+    <span class="fk">enp0s8</span>:
+      <span class="fk">dhcp4</span>: <span class="fv">true</span></div>
+  </div>
+
+  <p>Salve: <strong>Ctrl+O → Enter → Ctrl+X</strong>. Depois aplique:</p>
+  <div class="cmd-block">
+    <div class="cmd-header">bash <button class="cmd-copy" onclick="copyCmd(this, 'sudo netplan apply')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">sudo</span> netplan apply</div>
+  </div>
+
+  <h3>Passo 3.4 — Corrigir o DNS permanentemente</h3>
+  <div class="cmd-block">
+    <div class="cmd-header">bash <button class="cmd-copy" onclick="copyCmd(this, 'sudo sed -i \"s/#DNS=/DNS=8.8.8.8/\" /etc/systemd/resolved.conf && sudo systemctl restart systemd-resolved')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">sudo</span> sed -i <span class="str">"s/#DNS=/DNS=8.8.8.8/"</span> /etc/systemd/resolved.conf <span class="flag">&&</span> <span class="kw">sudo</span> systemctl restart systemd-resolved</div>
+  </div>
+
+  <h3>Passo 3.5 — Verificar IPs e testar internet</h3>
+  <div class="cmd-block">
+    <div class="cmd-header">bash <button class="cmd-copy" onclick="copyCmd(this, 'ip a')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">ip a</span></div>
+  </div>
+  <p>Anote o IP da <code>enp0s8</code> — será algo como <code>192.168.56.104</code>. Você vai usar esse IP para SSH e para acessar o dashboard.</p>
+
+  <div class="cmd-block">
+    <div class="cmd-header">bash <button class="cmd-copy" onclick="copyCmd(this, 'ping 8.8.8.8 -c 3')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">ping</span> 8.8.8.8 <span class="flag">-c</span> 3</div>
+  </div>
+  <div class="result">
+    <span class="label">Resultado esperado</span>
+    3 packets transmitted, 3 received, <span class="ok">0% packet loss</span>
+  </div>
+</div>
+
+<!-- STEP 4 -->
+<div class="step" id="ssh">
+  <div class="step-header">
+    <div class="step-num">04</div>
+    <div class="step-title-block">
+      <div class="step-tag">SSH</div>
+      <h2>ATIVAR ACESSO SSH</h2>
+    </div>
+  </div>
+
+  <p>Com SSH ativo, você acessa a VM pelo PowerShell do Windows e consegue colar comandos longos normalmente com <strong>Ctrl+V</strong> — sem problema de layout de teclado.</p>
+
+  <h3>Passo 4.1 — Instalar o servidor SSH</h3>
+  <div class="cmd-block">
+    <div class="cmd-header">bash — na janela da VM <button class="cmd-copy" onclick="copyCmd(this, 'sudo apt install openssh-server -y')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">sudo</span> apt install openssh-server -y</div>
+  </div>
+
+  <h3>Passo 4.2 — Conectar pelo PowerShell do Windows</h3>
+  <p>Abra o PowerShell no Windows. Substitua o IP pelo que você anotou no passo 3.4:</p>
+  <div class="cmd-block">
+    <div class="cmd-header">PowerShell (Windows) <button class="cmd-copy" onclick="copyCmd(this, 'ssh ubuntu@192.168.56.104')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">ssh</span> ubuntu@<span class="str">192.168.56.104</span></div>
+  </div>
+  <p>Na primeira conexão, digite <strong>yes</strong> quando perguntar sobre o fingerprint. Insira a senha <code>ubuntu</code>.</p>
+  <div class="result">
+    <span class="label">Resultado esperado</span>
+    <span class="ok">ubuntu@Wazuh-Server:~$</span>
+  </div>
+
+  <div class="note tip">
+    <strong>A partir daqui: use o PowerShell via SSH</strong>
+    Todo o restante do guia deve ser executado no PowerShell conectado via SSH, não na janela da VM. Isso permite colar comandos sem problema.
+  </div>
+</div>
+
+<!-- STEP 5 -->
+<div class="step" id="wazuh">
+  <div class="step-header">
+    <div class="step-num">05</div>
+    <div class="step-title-block">
+      <div class="step-tag">Wazuh</div>
+      <h2>INSTALAR O WAZUH</h2>
+    </div>
+  </div>
+
+  <p>O Wazuh será instalado no modo <strong>all-in-one</strong>: um único script instala e configura todos os componentes automaticamente.</p>
+
+  <h3>Componentes instalados</h3>
+  <ul class="checklist">
+    <li><div class="ck">→</div><div><strong>Wazuh Indexer</strong> — armazena e indexa alertas (baseado em OpenSearch)</div></li>
+    <li><div class="ck">→</div><div><strong>Wazuh Manager</strong> — recebe logs dos agentes e gera os alertas</div></li>
+    <li><div class="ck">→</div><div><strong>Filebeat</strong> — encaminha alertas do Manager para o Indexer</div></li>
+    <li><div class="ck">→</div><div><strong>Wazuh Dashboard</strong> — interface web para visualizar e investigar alertas</div></li>
+  </ul>
+
+  <h3>Passo 5.1 — Instalar o curl</h3>
+  <p>O curl é necessário para baixar o script de instalação do Wazuh. Verifique se já está instalado e instale caso não esteja:</p>
+  <div class="cmd-block">
+    <div class="cmd-header">bash — via SSH no PowerShell <button class="cmd-copy" onclick="copyCmd(this, 'sudo apt install curl -y')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">sudo</span> apt install curl -y</div>
+  </div>
+  <div class="result">
+    <span class="label">Resultado esperado</span>
+    curl is already the newest version (...) <span class="ok">— ou instalação concluída sem erros.</span>
+  </div>
+
+  <h3>Passo 5.2 — Executar o script de instalação</h3>
+  <div class="cmd-block blue">
+    <div class="cmd-header">bash — via SSH no PowerShell · demora 10–15 min <button class="cmd-copy" onclick="copyCmd(this, 'curl -sO https://packages.wazuh.com/4.7/wazuh-install.sh && sudo bash wazuh-install.sh -a')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">curl</span> <span class="flag">-sO</span> <span class="str">https://packages.wazuh.com/4.7/wazuh-install.sh</span> <span class="flag">&&</span> <span class="kw">sudo</span> bash wazuh-install.sh <span class="flag">-a</span></div>
+  </div>
+
+  <div class="note warn">
+    <strong>⚠ Anote as credenciais ao final</strong>
+    O script exibe usuário e senha do dashboard apenas uma vez, ao terminar. Não feche o terminal antes de copiar.
+  </div>
+
+  <div class="result">
+    <span class="label">Saída ao final da instalação</span>
+    INFO: You can access the web interface https://&lt;ip&gt;:443<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;User: <span class="ok">admin</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Password: <span class="ok">[senha gerada automaticamente]</span><br>
+    INFO: Installation finished.
+  </div>
+
+  <p>Se precisar recuperar a senha depois:</p>
+  <div class="cmd-block">
+    <div class="cmd-header">bash — recuperar senha <button class="cmd-copy" onclick="copyCmd(this, 'sudo tar -O -xvf wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">sudo</span> tar <span class="flag">-O -xvf</span> wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt</div>
+  </div>
+
+  <h3>Passo 5.3 — Acessar o dashboard</h3>
+  <p>No navegador do seu Windows, acesse (use o IP da <code>enp0s8</code> que você anotou):</p>
+  <div class="cmd-block">
+    <div class="cmd-header">URL <button class="cmd-copy" onclick="copyCmd(this, 'https://192.168.56.104')">copiar</button></div>
+    <div class="cmd-body">https://<span class="str">192.168.56.104</span></div>
+  </div>
+  <div class="note tip">
+    <strong>Aviso de certificado</strong>
+    O navegador vai alertar sobre certificado não confiável — é normal. Clique em <strong>Avançado → Continuar assim mesmo</strong>. O certificado é autoassinado pelo próprio Wazuh.
+  </div>
+  <p>Faça login com <strong>admin</strong> e a senha gerada. O dashboard vai aparecer com <em>"No agents were added to this manager."</em></p>
+</div>
+
+<!-- STEP 6 -->
+<div class="step" id="agente">
+  <div class="step-header">
+    <div class="step-num">06</div>
+    <div class="step-title-block">
+      <div class="step-tag">Windows</div>
+      <h2>INSTALAR O AGENTE WINDOWS</h2>
+    </div>
+  </div>
+
+  <p>O agente Wazuh é instalado no Windows e envia os logs do sistema para o servidor. Vamos instalar na própria máquina Windows.</p>
+
+  <div class="note warn">
+    <strong>⚠ Se o agente já foi instalado antes — desinstale primeiro</strong>
+    Se você já instalou o agente Wazuh em algum momento anterior, é necessário removê-lo completamente antes de reinstalar. Pular esse passo causa conflito de registro.
+  </div>
+
+  <h3>Passo 6.1 — (Apenas se reinstalando) Desinstalar o agente anterior</h3>
+  <p>Abra o PowerShell como <strong>Administrador</strong> e rode:</p>
+  <div class="cmd-block red">
+    <div class="cmd-header">PowerShell Admin (Windows) — desinstalar agente <button class="cmd-copy" onclick="copyCmd(this, 'wmic product where \"name like \'Wazuh Agent%%\'\" call uninstall')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">wmic</span> product where <span class="str">"name like 'Wazuh Agent%%'"</span> call uninstall</div>
+  </div>
+  <p>Aguarde a conclusão. Depois verifique se foi removido com sucesso:</p>
+  <div class="cmd-block">
+    <div class="cmd-header">PowerShell Admin (Windows) — verificar remoção <button class="cmd-copy" onclick="copyCmd(this, 'Get-Service WazuhSvc')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">Get-Service</span> WazuhSvc</div>
+  </div>
+  <div class="result">
+    <span class="label">Resultado esperado — desinstalação confirmada</span>
+    <span class="ok">Get-Service : Cannot find any service with service name 'WazuhSvc'</span><br>
+    <span style="color:var(--muted)">← Esse erro é o resultado correto. Significa que o serviço não existe mais.</span>
+  </div>
+  <div class="note tip">
+    <strong>Se o serviço ainda aparecer</strong>
+    Reinicie o Windows e tente o comando de desinstalação novamente antes de prosseguir.
+  </div>
+
+  <h3>Passo 6.2 — Gerar o comando pelo dashboard</h3>
+  <p>No dashboard, clique no aviso amarelo <strong>Add agent</strong>. Configure:</p>
+  <ul class="checklist">
+    <li><div class="ck">1</div><div>Package: <strong>Windows → MSI 32/64 bits</strong></div></li>
+    <li><div class="ck">2</div><div>Server address: <strong>192.168.56.104</strong> (IP da sua VM)</div></li>
+    <li><div class="ck">3</div><div>O dashboard gera o comando completo na seção 4 — copie ele</div></li>
+  </ul>
+
+  <h3>Passo 6.3 — Instalar o agente (PowerShell Admin)</h3>
+  <p>Abra um <strong>novo</strong> PowerShell como <strong>Administrador</strong> no Windows. Cole o comando gerado pelo dashboard — o formato é este:</p>
+  <div class="cmd-block blue">
+    <div class="cmd-header">PowerShell Admin (Windows) <button class="cmd-copy" onclick="copyCmd(this, 'Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-4.7.5-1.msi -OutFile ${env.tmp}\\wazuh-agent; msiexec.exe /i ${env.tmp}\\wazuh-agent /q WAZUH_MANAGER=\'192.168.56.104\' WAZUH_REGISTRATION_SERVER=\'192.168.56.104\'')">copiar</button></div>
+    <div class="cmd-body">Invoke-WebRequest <span class="flag">-Uri</span> <span class="str">https://packages.wazuh.com/4.x/windows/wazuh-agent-4.7.5-1.msi</span> <span class="flag">-OutFile</span> ${env.tmp}\wazuh-agent; msiexec.exe /i ${env.tmp}\wazuh-agent /q <span class="str">WAZUH_MANAGER='192.168.56.104'</span> <span class="str">WAZUH_REGISTRATION_SERVER='192.168.56.104'</span></div>
+  </div>
+
+  <h3>Passo 6.4 — Iniciar o serviço</h3>
+  <div class="cmd-block">
+    <div class="cmd-header">PowerShell Admin (Windows) <button class="cmd-copy" onclick="copyCmd(this, 'NET START WazuhSvc')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">NET START</span> WazuhSvc</div>
+  </div>
+  <div class="result">
+    <span class="label">Resultado esperado</span>
+    <span class="ok">O serviço de Wazuh foi iniciado com êxito.</span>
+  </div>
+
+  <h3>Passo 6.5 — Confirmar no dashboard</h3>
+  <p>Volte ao dashboard e clique em <strong>Refresh</strong>. O contador <strong>Active agents</strong> deve mostrar <strong>1</strong> e o nome do seu PC deve aparecer na lista.</p>
+</div>
+
+<!-- STEP 7 -->
+<div class="step" id="ataque">
+  <div class="step-header">
+    <div class="step-num">07</div>
+    <div class="step-title-block">
+      <div class="step-tag">SOC · Blue Team</div>
+      <h2>SIMULAR ATAQUE E INVESTIGAR</h2>
+    </div>
+  </div>
+
+  <p>Com o agente ativo, vamos simular atividade maliciosa no Windows para gerar alertas reais no SIEM e praticar a análise como um analista SOC N1.</p>
+
+  <h3>Passo 7.1 — Simular brute force de conta</h3>
+  <div class="cmd-block red">
+    <div class="cmd-header">PowerShell Admin (Windows) — simulação segura <button class="cmd-copy" onclick="copyCmd(this, 'for ($i=1; $i -le 10; $i++) { net user administrador senhaerrada$i }')">copiar</button></div>
+    <div class="cmd-body"><span class="kw">for</span> ($i=1; $i -le 10; $i++) { <span class="kw">net user</span> administrador senhaerrada$i }</div>
+  </div>
+
+  <div class="note tip">
+    <strong>Por que esse comando gera alertas?</strong>
+    O <code>net user</code> tenta modificar a conta "administrador" repetidamente. O Windows registra isso como Event ID 4738 (User Account Changed). O Wazuh detecta e classifica como potencial manipulação de conta — técnica T1098 do framework MITRE ATT&CK.
+  </div>
+
+  <h3>Passo 7.2 — Ver os alertas</h3>
+  <p>No dashboard: <strong>Security Events → aba Events</strong>. Mude o período para <strong>Last 15 minutes</strong> e clique em Refresh.</p>
+  <div class="result">
+    <span class="label">Alertas esperados</span>
+    Rule: <span class="ok">User account changed</span> · Rule ID: <span class="ok">60110</span> · Level: <span class="ok">8</span><br>
+    MITRE: <span class="ok">Account Manipulation · Valid Accounts · Create Account</span>
+  </div>
+
+  <h3>Passo 7.3 — Investigar o alerta (análise forense)</h3>
+  <p>Clique na seta <strong>›</strong> à esquerda de qualquer alerta para expandir e ver todos os campos. Estes são os mais importantes:</p>
+  <div class="specs">
+    <div class="spec-item"><div class="spec-label">agent.name</div><div class="spec-val">PC afetado</div></div>
+    <div class="spec-item"><div class="spec-label">agent.ip</div><div class="spec-val">IP do endpoint</div></div>
+    <div class="spec-item"><div class="spec-label">eventID</div><div class="spec-val">4738 = conta alterada</div></div>
+    <div class="spec-item"><div class="spec-label">rule.level</div><div class="spec-val">8 = severidade média-alta</div></div>
+    <div class="spec-item"><div class="spec-label">targetUserName</div><div class="spec-val">Conta alvo</div></div>
+    <div class="spec-item"><div class="spec-label">subjectUserName</div><div class="spec-val">Quem executou</div></div>
+    <div class="spec-item"><div class="spec-label">passwordLastSet</div><div class="spec-val">Horário exato</div></div>
+    <div class="spec-item"><div class="spec-label">channel</div><div class="spec-val">Security = log de segurança</div></div>
+  </div>
+
+  <div class="note tip">
+    <strong>Event IDs essenciais para memorizar</strong>
+    4624 = Login bem-sucedido · 4625 = Login falho · 4720 = Conta criada · 4738 = Conta alterada · 4688 = Processo criado · 4776 = Autenticação NTLM
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="summary">
+  <div class="summary-title">RESULTADO FINAL</div>
+  <div class="summary-grid">
+    <div class="sg-item"><div class="sg-num">7</div><div class="sg-label">Passos para um SOC funcional do zero</div></div>
+    <div class="sg-item"><div class="sg-num">4</div><div class="sg-label">Componentes Wazuh instalados e ativos</div></div>
+    <div class="sg-item"><div class="sg-num">1</div><div class="sg-label">Endpoint Windows monitorado em tempo real</div></div>
+    <div class="sg-item"><div class="sg-num">∞</div><div class="sg-label">Alertas MITRE ATT&CK sendo gerados</div></div>
+  </div>
+
+  <h3>Checklist de conclusão</h3>
+  <ul class="checklist">
+    <li><div class="ck">✓</div><div><strong>VM criada</strong> com 4GB RAM, 2 CPU, 50GB disco, credenciais definidas</div></li>
+    <li><div class="ck">✓</div><div><strong>Rede configurada antes de ligar:</strong> Adaptador 1 = NAT · Adaptador 2 = Host-only</div></li>
+    <li><div class="ck">✓</div><div><strong>Netplan configurado</strong> — interface Host-only sobe automaticamente em todo reboot</div></li>
+    <li><div class="ck">✓</div><div><strong>DNS corrigido permanentemente</strong> via systemd-resolved (8.8.8.8)</div></li>
+    <li><div class="ck">✓</div><div><strong>SSH instalado</strong> — acesso via PowerShell do Windows sem problema de teclado</div></li>
+    <li><div class="ck">✓</div><div><strong>Wazuh 4.7 all-in-one</strong> instalado — dashboard acessível pelo navegador</div></li>
+    <li><div class="ck">✓</div><div><strong>Agente Windows</strong> instalado e ativo no dashboard</div></li>
+    <li><div class="ck">✓</div><div><strong>Ataque simulado</strong> e detectado com mapeamento MITRE ATT&CK automático</div></li>
+    <li><div class="ck">✓</div><div><strong>Alerta investigado</strong> com campos forenses reais (Event ID, usuário, horário, IP)</div></li>
+  </ul>
+
+  <div class="note tip" style="margin-top:24px">
+    <strong>Próximos passos recomendados</strong>
+    1. Instalar o <strong>Sysmon</strong> no Windows para logs mais detalhados (processos, conexões, hashes) · 2. Adicionar uma <strong>VM Kali Linux</strong> como máquina atacante · 3. Instalar <strong>pfSense</strong> como firewall e integrar logs ao Wazuh · 4. Documentar tudo no <strong>GitHub</strong> como portfólio
+  </div>
+</div>
+
+</main>
+
+<footer>Wazuh Homelab · Guia do Zero · Fatec Americana — Segurança da Informação</footer>
+
+<script>
+function copyCmd(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'copiado ✓';
+    btn.style.color = '#00ff88';
+    setTimeout(() => { btn.textContent = 'copiar'; btn.style.color = ''; }, 1800);
+  });
+}
+</script>
+</body>
+</html>
